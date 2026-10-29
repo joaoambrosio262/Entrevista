@@ -118,6 +118,7 @@ namespace FI.AtividadeEntrevista.DAL
         {
             List<SqlParameter> parametros = new List<SqlParameter>
             {
+                new SqlParameter(nameof(Cliente.Id), cliente.Id),
                 new SqlParameter(nameof(Cliente.Nome), cliente.Nome),
                 new SqlParameter(nameof(Cliente.Sobrenome), cliente.Sobrenome),
                 new SqlParameter(nameof(Cliente.Nacionalidade), cliente.Nacionalidade),
