@@ -67,5 +67,16 @@ namespace WebAtividadeEntrevista.Models
         /// </summary>
         public string Telefone { get; set; }
 
+        /// <summary>
+        /// CPF
+        /// </summary>
+        [Required(ErrorMessage = "O CPF é obrigatório")]
+        [CpfAttribute(ErrorMessage = "O CPF informado é inválido")]
+        public string CPF { get; set; }
+
+        /// <summary>
+        /// Beneficiários
+        /// </summary>
+        public List<BeneficiarioModel> Beneficiarios { get; set; } = new List<BeneficiarioModel>();
     }    
 }

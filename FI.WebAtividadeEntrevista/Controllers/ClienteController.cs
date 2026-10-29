@@ -1,4 +1,4 @@
-﻿using FI.AtividadeEntrevista.BLL;
+using FI.AtividadeEntrevista.BLL;
 using WebAtividadeEntrevista.Models;
 using System;
 using System.Collections.Generic;
@@ -11,11 +11,19 @@ namespace WebAtividadeEntrevista.Controllers
 {
     public class ClienteController : Controller
     {
+        private readonly IBoCliente _boCliente;
+        private readonly IBoBeneficiario _boBeneficiario;
+
+        public ClienteController()
+        {
+            _boCliente = new BoCliente();
+            _boBeneficiario = new BoBeneficiario();
+        }
+
         public ActionResult Index()
         {
             return View();
         }
-
 
         public ActionResult Incluir()
         {
@@ -25,8 +33,6 @@ namespace WebAtividadeEntrevista.Controllers
         [HttpPost]
         public JsonResult Incluir(ClienteModel model)
         {
-            BoCliente bo = new BoCliente();
-            
             if (!this.ModelState.IsValid)
             {
                 List<string> erros = (from item in ModelState.Values
@@ -36,32 +42,52 @@ namespace WebAtividadeEntrevista.Controllers
                 Response.StatusCode = 400;
                 return Json(string.Join(Environment.NewLine, erros));
             }
-            else
-            {
-                
-                model.Id = bo.Incluir(new Cliente()
-                {                    
-                    CEP = model.CEP,
-                    Cidade = model.Cidade,
-                    Email = model.Email,
-                    Estado = model.Estado,
-                    Logradouro = model.Logradouro,
-                    Nacionalidade = model.Nacionalidade,
-                    Nome = model.Nome,
-                    Sobrenome = model.Sobrenome,
-                    Telefone = model.Telefone
-                });
 
-           
-                return Json("Cadastro efetuado com sucesso");
+            if (_boCliente.VerificarExistencia(model.CPF))
+            {
+                Response.StatusCode = 400;
+                return Json("Já existe um cliente cadastrado com este CPF.");
             }
+
+            if (model.Beneficiarios != null && model.Beneficiarios.Count > 0)
+            {
+                var cpfsLimpos = model.Beneficiarios.Select(b => new string(b.CPF.Where(char.IsDigit).ToArray())).ToList();
+                if (cpfsLimpos.Count != cpfsLimpos.Distinct().Count())
+                {
+                    Response.StatusCode = 400;
+                    return Json("Não é permitido cadastrar mais de um beneficiário com o mesmo CPF para o mesmo cliente.");
+                }
+            }
+
+            var cliente = new Cliente()
+            {                    
+                CEP = model.CEP,
+                Cidade = model.Cidade,
+                Email = model.Email,
+                Estado = model.Estado,
+                Logradouro = model.Logradouro,
+                Nacionalidade = model.Nacionalidade,
+                Nome = model.Nome,
+                Sobrenome = model.Sobrenome,
+                Telefone = model.Telefone,
+                CPF = model.CPF,
+                Beneficiarios = model.Beneficiarios?.Select(b => new Beneficiario()
+                {
+                    Id = b.Id,
+                    CPF = b.CPF,
+                    Nome = b.Nome,
+                    IdCliente = b.IdCliente
+                }).ToList() ?? new List<Beneficiario>()
+            };
+
+            model.Id = _boCliente.Incluir(cliente);
+
+            return Json("Cadastro efetuado com sucesso");
         }
 
         [HttpPost]
         public JsonResult Alterar(ClienteModel model)
         {
-            BoCliente bo = new BoCliente();
-       
             if (!this.ModelState.IsValid)
             {
                 List<string> erros = (from item in ModelState.Values
@@ -71,36 +97,58 @@ namespace WebAtividadeEntrevista.Controllers
                 Response.StatusCode = 400;
                 return Json(string.Join(Environment.NewLine, erros));
             }
-            else
+
+            if (_boCliente.VerificarExistencia(model.CPF, model.Id))
             {
-                bo.Alterar(new Cliente()
-                {
-                    Id = model.Id,
-                    CEP = model.CEP,
-                    Cidade = model.Cidade,
-                    Email = model.Email,
-                    Estado = model.Estado,
-                    Logradouro = model.Logradouro,
-                    Nacionalidade = model.Nacionalidade,
-                    Nome = model.Nome,
-                    Sobrenome = model.Sobrenome,
-                    Telefone = model.Telefone
-                });
-                               
-                return Json("Cadastro alterado com sucesso");
+                Response.StatusCode = 400;
+                return Json("Já existe um cliente cadastrado com este CPF.");
             }
+
+            if (model.Beneficiarios != null && model.Beneficiarios.Count > 0)
+            {
+                var cpfsLimpos = model.Beneficiarios.Select(b => new string(b.CPF.Where(char.IsDigit).ToArray())).ToList();
+                if (cpfsLimpos.Count != cpfsLimpos.Distinct().Count())
+                {
+                    Response.StatusCode = 400;
+                    return Json("Não é permitido cadastrar mais de um beneficiário com o mesmo CPF para o mesmo cliente.");
+                }
+            }
+
+            var cliente = new Cliente()
+            {
+                Id = model.Id,
+                CEP = model.CEP,
+                Cidade = model.Cidade,
+                Email = model.Email,
+                Estado = model.Estado,
+                Logradouro = model.Logradouro,
+                Nacionalidade = model.Nacionalidade,
+                Nome = model.Nome,
+                Sobrenome = model.Sobrenome,
+                Telefone = model.Telefone,
+                CPF = model.CPF,
+                Beneficiarios = model.Beneficiarios?.Select(b => new Beneficiario()
+                {
+                    Id = b.Id,
+                    CPF = b.CPF,
+                    Nome = b.Nome,
+                    IdCliente = model.Id
+                }).ToList() ?? new List<Beneficiario>()
+            };
+
+            _boCliente.Alterar(cliente);
+                               
+            return Json("Cadastro alterado com sucesso");
         }
 
         [HttpGet]
         public ActionResult Alterar(long id)
         {
-            BoCliente bo = new BoCliente();
-            Cliente cliente = bo.Consultar(id);
-            Models.ClienteModel model = null;
-
+            Cliente cliente = _boCliente.Consultar(id);
+            ClienteModel model = null;
             if (cliente != null)
             {
-                model = new ClienteModel()
+                 model = new ClienteModel()
                 {
                     Id = cliente.Id,
                     CEP = cliente.CEP,
@@ -111,13 +159,18 @@ namespace WebAtividadeEntrevista.Controllers
                     Nacionalidade = cliente.Nacionalidade,
                     Nome = cliente.Nome,
                     Sobrenome = cliente.Sobrenome,
-                    Telefone = cliente.Telefone
+                    Telefone = cliente.Telefone,
+                    CPF = cliente.CPF,
+                    Beneficiarios = cliente.Beneficiarios?.Select(b => new BeneficiarioModel()
+                    {
+                        Id = b.Id,
+                        CPF = b.CPF,
+                        Nome = b.Nome,
+                        IdCliente = b.IdCliente
+                    }).ToList() ?? new List<BeneficiarioModel>()
                 };
-
-            
             }
-
-            return View(model);
+                return View(model);
         }
 
         [HttpPost]
@@ -136,7 +189,7 @@ namespace WebAtividadeEntrevista.Controllers
                 if (array.Length > 1)
                     crescente = array[1];
 
-                List<Cliente> clientes = new BoCliente().Pesquisa(jtStartIndex, jtPageSize, campo, crescente.Equals("ASC", StringComparison.InvariantCultureIgnoreCase), out qtd);
+                List<Cliente> clientes = _boCliente.Pesquisa(jtStartIndex, jtPageSize, campo, crescente.Equals("ASC", StringComparison.InvariantCultureIgnoreCase), out qtd);
 
                 //Return result to jTable
                 return Json(new { Result = "OK", Records = clientes, TotalRecordCount = qtd });
