@@ -1,14 +1,47 @@
-Implementação dos requisitos do teste prático para inclusão do CPF do cliente e manutenção de seus beneficiários:
+## Configuração e Restauração de Pacotes
 
-CPF do Cliente:
-Adicionada coluna CPF na tabela CLIENTES e atualizadas as stored procedures (Inc, Alt, Cons, Pesq, Verifica).
-Validação de formato (999.999.999-99), cálculo oficial do dígito verificador e garantia de não duplicidade na base.
+Quando baixei o projeto e tentei inicializar, tive problemas com a pasta `bin/roslyn` e o executável `csc.exe` não estavam sendo gerados corretamente, mesmo após a execução do `nuget restore`.
 
-Beneficiários:
-Adicionado botão e modal para gestão de beneficiários (inclusão, alteração e exclusão em grid).
-Validação de CPF de beneficiário e restrição de duplicidade para o mesmo cliente.
-Gravação unificada na tabela BENEFICIARIOS acionada apenas no botão "Salvar" do cadastro do cliente.
+Para garantir a restauração das dependências e a compilação correta da solução, execute os seguintes comandos no **PowerShell**, a partir da pasta raiz do projeto:
 
-Melhorias Técnicas:
-"Criação de interfaces (IBoCliente, IBoBeneficiario) e desacoplamento do Controller via injeção por construtor."
-Padronização de encoding UTF-8 com BOM e configuração de <globalization> no Web.config.
+**1. Restaurar os pacotes NuGet via MSBuild:**
+
+```powershell
+msbuild .\FI.WebAtividadeEntrevista.sln /t:Restore
+```
+
+**2. Recompilar a solução em Debug:**
+
+```powershell
+msbuild .\FI.WebAtividadeEntrevista.sln /t:Rebuild /p:Configuration=Debug
+```
+
+---
+
+## Implementação dos Requisitos do Teste Prático
+
+### CPF do Cliente
+
+- Adicionada a coluna `CPF` na tabela `CLIENTES`.
+- Atualizadas as Stored Procedures de inclusão, alteração, consulta, pesquisa e verificação.
+- Implementada validação do formato do CPF (`999.999.999-99`).
+- Implementado cálculo oficial dos dígitos verificadores.
+- Garantida a unicidade do CPF na base de dados.
+
+### Beneficiários
+
+- Adicionado botão para gerenciamento de beneficiários, com modal para inclusão, alteração e exclusão em grid.
+- Implementada validação do CPF dos beneficiários.
+- Implementada restrição de duplicidade de CPF para o mesmo cliente.
+- Centralizada a persistência dos beneficiários na tabela `BENEFICIARIOS`, sendo realizada exclusivamente pelo botão **Salvar** do cadastro do cliente.
+
+### Melhorias Técnicas
+
+### Melhorias Técnicas
+
+- Criadas as interfaces `IBoCliente` | `IBoBeneficiario` | `ICepValidate`.
+- Desacoplado o Controller por meio de injeção de dependência via construtor.
+- Implementada validação e consulta automática de CEP por meio da API **ViaCEP**, com preenchimento dos dados de endereço a partir do CEP informado.
+- Adicionado campo específico para preenchimento do número do endereço.
+- Padronizado o encoding dos arquivos para UTF-8 com BOM.
+- Configurada a seção `<globalization>` no `Web.config`.
