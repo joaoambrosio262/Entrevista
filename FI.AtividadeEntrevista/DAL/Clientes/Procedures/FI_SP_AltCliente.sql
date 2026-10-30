@@ -9,6 +9,7 @@ CREATE PROC FI_SP_AltCliente
     @EMAIL         VARCHAR (2079),
     @TELEFONE      VARCHAR (15),
     @CPF           VARCHAR (14),
+    @NUMERO        VARCHAR (20),
 	@Id           BIGINT
 AS
 BEGIN
@@ -23,6 +24,7 @@ BEGIN
 		LOGRADOURO = @LOGRADOURO, 
 		EMAIL = @EMAIL, 
 		TELEFONE = @TELEFONE,
-		CPF = @CPF
+		CPF = @CPF,
+		NUMERO = @NUMERO
 	WHERE Id = @Id
 END

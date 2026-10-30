@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Linq;
@@ -43,6 +43,12 @@ namespace WebAtividadeEntrevista.Models
         /// </summary>
         [Required]
         public string Logradouro { get; set; }
+
+        /// <summary>
+        /// Número do endereço
+        /// </summary>
+        [Required(ErrorMessage = "O Número é obrigatório")]
+        public string Numero { get; set; }
 
         /// <summary>
         /// Nacionalidade

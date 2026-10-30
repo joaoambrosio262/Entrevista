@@ -1,9 +1,11 @@
-using FI.AtividadeEntrevista.BLL;
+﻿using FI.AtividadeEntrevista.BLL;
+using FI.AtividadeEntrevista.BLL.Interfaces;
+using FI.AtividadeEntrevista.BLL.Services;
 using WebAtividadeEntrevista.Models;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Web;
+using System.Threading.Tasks;
 using System.Web.Mvc;
 using FI.AtividadeEntrevista.DML;
 
@@ -11,13 +13,18 @@ namespace WebAtividadeEntrevista.Controllers
 {
     public class ClienteController : Controller
     {
-        private readonly IBoCliente _boCliente;
-        private readonly IBoBeneficiario _boBeneficiario;
+        private readonly IBoCliente boCliente;
+        private readonly IBoBeneficiario boBeneficiario;
+        private readonly ICepValidate cepValidate;
 
-        public ClienteController()
+        public ClienteController() : this(new BoCliente(), new BoBeneficiario(), new CepValidate())
+        { }
+
+        public ClienteController(IBoCliente boCliente, IBoBeneficiario boBeneficiario, ICepValidate cepValidate)
         {
-            _boCliente = new BoCliente();
-            _boBeneficiario = new BoBeneficiario();
+            this.boCliente = boCliente;
+            this.boBeneficiario = boBeneficiario;
+            this.cepValidate = cepValidate;
         }
 
         public ActionResult Index()
@@ -28,6 +35,28 @@ namespace WebAtividadeEntrevista.Controllers
         public ActionResult Incluir()
         {
             return View();
+        }
+
+        [HttpGet]
+        public async Task<JsonResult> ConsultarCep(string cep)
+        {
+            if (string.IsNullOrWhiteSpace(cep))
+                return Json(new { sucesso = false, mensagem = "CEP não informado." }, JsonRequestBehavior.AllowGet);
+
+            var endereco = await cepValidate.BuscarEnderecoPorCep_Async(cep);
+
+            if (endereco == null || endereco.Erro)
+                return Json(new { sucesso = false, mensagem = "CEP não encontrado ou inválido." }, JsonRequestBehavior.AllowGet);
+
+            return Json(new
+            {
+                sucesso = true,
+                cep = endereco.Cep,
+                logradouro = endereco.Logradouro,
+                bairro = endereco.Bairro,
+                cidade = endereco.Localidade,
+                estado = endereco.Uf
+            }, JsonRequestBehavior.AllowGet);
         }
 
         [HttpPost]
@@ -43,7 +72,13 @@ namespace WebAtividadeEntrevista.Controllers
                 return Json(string.Join(Environment.NewLine, erros));
             }
 
-            if (_boCliente.VerificarExistencia(model.CPF))
+            if (!cepValidate.ValidarFormatoCep(model.CEP))
+            {
+                Response.StatusCode = 400;
+                return Json("O CEP informado possui formato inválido.");
+            }
+
+            if (boCliente.VerificarExistencia(model.CPF))
             {
                 Response.StatusCode = 400;
                 return Json("Já existe um cliente cadastrado com este CPF.");
@@ -66,6 +101,7 @@ namespace WebAtividadeEntrevista.Controllers
                 Email = model.Email,
                 Estado = model.Estado,
                 Logradouro = model.Logradouro,
+                Numero = model.Numero,
                 Nacionalidade = model.Nacionalidade,
                 Nome = model.Nome,
                 Sobrenome = model.Sobrenome,
@@ -80,7 +116,7 @@ namespace WebAtividadeEntrevista.Controllers
                 }).ToList() ?? new List<Beneficiario>()
             };
 
-            model.Id = _boCliente.Incluir(cliente);
+            model.Id = boCliente.Incluir(cliente);
 
             return Json("Cadastro efetuado com sucesso");
         }
@@ -98,7 +134,13 @@ namespace WebAtividadeEntrevista.Controllers
                 return Json(string.Join(Environment.NewLine, erros));
             }
 
-            if (_boCliente.VerificarExistencia(model.CPF, model.Id))
+            if (!cepValidate.ValidarFormatoCep(model.CEP))
+            {
+                Response.StatusCode = 400;
+                return Json("O CEP informado possui formato inválido.");
+            }
+
+            if (boCliente.VerificarExistencia(model.CPF, model.Id))
             {
                 Response.StatusCode = 400;
                 return Json("Já existe um cliente cadastrado com este CPF.");
@@ -122,6 +164,7 @@ namespace WebAtividadeEntrevista.Controllers
                 Email = model.Email,
                 Estado = model.Estado,
                 Logradouro = model.Logradouro,
+                Numero = model.Numero,
                 Nacionalidade = model.Nacionalidade,
                 Nome = model.Nome,
                 Sobrenome = model.Sobrenome,
@@ -136,7 +179,7 @@ namespace WebAtividadeEntrevista.Controllers
                 }).ToList() ?? new List<Beneficiario>()
             };
 
-            _boCliente.Alterar(cliente);
+            boCliente.Alterar(cliente);
                                
             return Json("Cadastro alterado com sucesso");
         }
@@ -144,11 +187,11 @@ namespace WebAtividadeEntrevista.Controllers
         [HttpGet]
         public ActionResult Alterar(long id)
         {
-            Cliente cliente = _boCliente.Consultar(id);
+            Cliente cliente = boCliente.Consultar(id);
             ClienteModel model = null;
             if (cliente != null)
             {
-                 model = new ClienteModel()
+                model = new ClienteModel()
                 {
                     Id = cliente.Id,
                     CEP = cliente.CEP,
@@ -156,6 +199,7 @@ namespace WebAtividadeEntrevista.Controllers
                     Email = cliente.Email,
                     Estado = cliente.Estado,
                     Logradouro = cliente.Logradouro,
+                    Numero = cliente.Numero,
                     Nacionalidade = cliente.Nacionalidade,
                     Nome = cliente.Nome,
                     Sobrenome = cliente.Sobrenome,
@@ -170,7 +214,7 @@ namespace WebAtividadeEntrevista.Controllers
                     }).ToList() ?? new List<BeneficiarioModel>()
                 };
             }
-                return View(model);
+            return View(model);
         }
 
         [HttpPost]
@@ -189,7 +233,7 @@ namespace WebAtividadeEntrevista.Controllers
                 if (array.Length > 1)
                     crescente = array[1];
 
-                List<Cliente> clientes = _boCliente.Pesquisa(jtStartIndex, jtPageSize, campo, crescente.Equals("ASC", StringComparison.InvariantCultureIgnoreCase), out qtd);
+                List<Cliente> clientes = boCliente.Pesquisa(jtStartIndex, jtPageSize, campo, crescente.Equals("ASC", StringComparison.InvariantCultureIgnoreCase), out qtd);
 
                 //Return result to jTable
                 return Json(new { Result = "OK", Records = clientes, TotalRecordCount = qtd });

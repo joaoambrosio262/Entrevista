@@ -27,6 +27,7 @@ namespace FI.AtividadeEntrevista.DAL
                 new SqlParameter(nameof(Cliente.Estado), cliente.Estado),
                 new SqlParameter(nameof(Cliente.Cidade), cliente.Cidade),
                 new SqlParameter(nameof(Cliente.Logradouro), cliente.Logradouro),
+                new SqlParameter(nameof(Cliente.Numero), cliente.Numero),
                 new SqlParameter(nameof(Cliente.Email), cliente.Email),
                 new SqlParameter(nameof(Cliente.Telefone), cliente.Telefone),
                 new SqlParameter(nameof(Cliente.CPF), cliente.CPF)
@@ -126,6 +127,7 @@ namespace FI.AtividadeEntrevista.DAL
                 new SqlParameter(nameof(Cliente.Estado), cliente.Estado),
                 new SqlParameter(nameof(Cliente.Cidade), cliente.Cidade),
                 new SqlParameter(nameof(Cliente.Logradouro), cliente.Logradouro),
+                new SqlParameter(nameof(Cliente.Numero), cliente.Numero),
                 new SqlParameter(nameof(Cliente.Email), cliente.Email),
                 new SqlParameter(nameof(Cliente.Telefone), cliente.Telefone),
                 new SqlParameter(nameof(Cliente.CPF), cliente.CPF)
@@ -164,6 +166,7 @@ namespace FI.AtividadeEntrevista.DAL
                     cli.Email = row.Field<string>("Email");
                     cli.Estado = row.Field<string>("Estado");
                     cli.Logradouro = row.Field<string>("Logradouro");
+                    cli.Numero = row.Field<string>("Numero");
                     cli.Nacionalidade = row.Field<string>("Nacionalidade");
                     cli.Nome = row.Field<string>("Nome");
                     cli.Sobrenome = row.Field<string>("Sobrenome");

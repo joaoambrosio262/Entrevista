@@ -6,6 +6,14 @@ $(document).ready(function () {
         $(this).val(mascaraCPF($(this).val()));
     });
 
+    $('#CEP').on('input keyup', function () {
+        $(this).val(mascaraCEP($(this).val()));
+    });
+
+    $('#CEP').on('blur', function () {
+        buscarEnderecoPorCep($(this).val());
+    });
+
     $('#btnSalvarBeneficiario').click(function () {
         var cpf = $('#BenefCPF').val().trim();
         var nome = $('#BenefNome').val().trim();
@@ -93,6 +101,12 @@ $(document).ready(function () {
             return;
         }
 
+        var cepCliente = $(this).find("#CEP").val().replace(/\D/g, "");
+        if (cepCliente.length !== 8) {
+            ModalDialog("Atenção", "O CEP informado é inválido.");
+            return;
+        }
+
         var dados = {
             "NOME": $(this).find("#Nome").val(),
             "CEP": $(this).find("#CEP").val(),
@@ -102,6 +116,7 @@ $(document).ready(function () {
             "Estado": $(this).find("#Estado").val(),
             "Cidade": $(this).find("#Cidade").val(),
             "Logradouro": $(this).find("#Logradouro").val(),
+            "Numero": $(this).find("#Numero").val(),
             "Telefone": $(this).find("#Telefone").val(),
             "CPF": cpfCliente,
             "Beneficiarios": beneficiarios
@@ -128,6 +143,35 @@ $(document).ready(function () {
     });
 });
 
+function buscarEnderecoPorCep(cep) {
+    if (!cep) return;
+    var cepLimpo = cep.replace(/\D/g, "");
+    if (cepLimpo.length !== 8) return;
+
+    var url = (typeof urlConsultarCep !== 'undefined' && urlConsultarCep)
+        ? urlConsultarCep
+        : '/Cliente/ConsultarCep';
+
+    $.ajax({
+        url: url,
+        method: "GET",
+        data: { cep: cepLimpo },
+        success: function (r) {
+            if (r && r.sucesso) {
+                if (r.logradouro) $('#Logradouro').val(r.logradouro);
+                if (r.cidade) $('#Cidade').val(r.cidade);
+                if (r.estado) $('#Estado').val(r.estado);
+                $('#Numero').focus();
+            } else {
+                ModalDialog("Atenção", r.mensagem || "CEP não encontrado.");
+            }
+        },
+        error: function () {
+            ModalDialog("Atenção", "Não foi possível consultar o CEP no momento.");
+        }
+    });
+}
+
 function renderizarBeneficiarios() {
     var $tbody = $('#gridBeneficiarios tbody');
     $tbody.empty();
@@ -144,6 +188,14 @@ function renderizarBeneficiarios() {
             '</tr>';
         $tbody.append(tr);
     }
+}
+
+function mascaraCEP(cep) {
+    if (!cep) return '';
+    cep = cep.replace(/\D/g, "");
+    if (cep.length > 8) cep = cep.substring(0, 8);
+    cep = cep.replace(/(\d{5})(\d)/, "$1-$2");
+    return cep;
 }
 
 function mascaraCPF(cpf) {
